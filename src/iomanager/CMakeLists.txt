@@ -5,6 +5,10 @@ include_directories (${TeraStitcher_SOURCE_DIR}/imagemanager)
 
 # find plugins
 SUBDIRLIST(SUBDIRS ${CMAKE_CURRENT_SOURCE_DIR}/plugins)
+#
+# Always include RAW
+#
+option (WITH_IO_PLUGIN_raw "Include the raw plugin in the project" ON)
 
 # ask for selection of the plugins to be included in the project
 # tiff2D and tiff3D are mandatory, thus they are set to ON by default
