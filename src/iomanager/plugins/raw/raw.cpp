@@ -125,7 +125,7 @@ throw (iom::exception)
                 idx += 2;
             }
             if (img_width < true_width) {
-                std::fseek(file, (true_width - img_width) * 2, SEEK_CUR);
+                fseek(file, (true_width - img_width) * 2, SEEK_CUR);
             }
         }
     } catch (const iom::exception &e) {
