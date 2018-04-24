@@ -86,7 +86,7 @@ throw (iom::exception)
     }
     try {
         int img_width_be = read_raw_int(file, true);
-        std::fseek(file, 0, SEEK_SET);
+        fseek(file, 0, SEEK_SET);
         int img_width_le = read_raw_int(file, false);
         if (img_width_be < img_width_le) {
             img_width = img_width_be;
@@ -168,6 +168,7 @@ throw (iom::exception)
         throw e;
     }
     std::fclose(file);
+	return data;
 }
 
 // Write 2D image data into a single (2D) image file
