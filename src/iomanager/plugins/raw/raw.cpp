@@ -44,21 +44,31 @@ bool
 	return true;
 }
 
-int read_raw_int(FILE *file)
+int read_raw_int(FILE *file, bool big_endian)
 throw (iom::exception)
 {
-    int result = 0;
-    int c;
-    for (int i=0; i<4; i++) {
-        result *= 256;
-        c = std::fgetc(file);
-        if (c < 0) {
-            throw iom::exception("Encountered end of file.");
+    if (big_endian) {
+        int result = 0;
+        int c;
+        for (int i=0; i<4; i++) {
+            result *= 256;
+            c = std::fgetc(file);
+            if (c < 0) {
+                throw iom::exception("Encountered end of file.");
+            }
+            result += c;
         }
-        result += c;
-    }
-    return result;
+        return result;
+     } else {
+        std::uint32_t result;
+        int nChars = std::fread((void *)(&result), sizeof(result), 1, file);
+        if (nChars < 1) {
+            throw iom::exception("Premature end of file.");
+        }
+        return (int)result;
+     }
 }
+
 // read image metadata from a 2D image file
 void
 	iomanager::raw::readMetadata(
@@ -75,8 +85,16 @@ throw (iom::exception)
         throw iom::exception(iom::strprintf("Unable to open %s", img_path));
     }
     try {
-        img_width = read_raw_int(file);
-        img_height = read_raw_int(file);
+        int img_width_be = read_raw_int(file, true);
+        std::fseek(file, 0, SEEK_SET);
+        int img_width_le = read_raw_int(file, false);
+        if (img_width_be < img_width_le) {
+            img_width = img_width_be;
+            img_height = read_raw_int(file, true);
+        } else {
+            img_width = img_width_le;
+            img_height = read_raw_int(file, false);
+        }
         img_bytes_x_chan = 2;
         img_chans = 1;
     } catch (const iom::exception &e) {
@@ -108,24 +126,41 @@ throw (iom::exception)
         throw iom::exception(iom::strprintf("Unable to open %s", img_path));
     }
     try {
-        true_width = read_raw_int(file);
-        true_height = read_raw_int(file);
-        for (int i=0; i<img_height; i++) {
-            for (int j=0; j<img_width; j++) {
-                c = std::fgetc(file);
-                if (c < 0) {
-                    throw iom::exception("End of file");
+        int width_be = read_raw_int(file, true);
+        std::fseek(file, 0, SEEK_SET);
+        int width_le = read_raw_int(file, false);
+        if (width_be < width_le) {
+            true_width = width_be;
+            true_height = read_raw_int(file, true);
+            for (int i=0; i<img_height; i++) {
+                for (int j=0; j<img_width; j++) {
+                    c = std::fgetc(file);
+                    if (c < 0) {
+                        throw iom::exception("End of file");
+                    }
+                    data[idx+1] = (char)c;
+                    c = std::fgetc(file);
+                    if (c < 0) {
+                        throw iom::exception("End of file");
+                    }
+                    data[idx] = (char)c;
+                    idx += 2;
                 }
-                data[idx+1] = (char)c;
-                c = std::fgetc(file);
-                if (c < 0) {
-                    throw iom::exception("End of file");
+                if (img_width < true_width) {
+                    std::fseek(file, (true_width - img_width) * 2, SEEK_CUR);
                 }
-                data[idx] = (char)c;
-                idx += 2;
             }
-            if (img_width < true_width) {
-                std::fseek(file, (true_width - img_width) * 2, SEEK_CUR);
+        } else {
+            true_width = width_le;
+            for (int i=0; i<img_height; i++) {
+                int nPixels = std::fread(
+                    (void *)(data+idx*2), 2, img_width, file);
+                if (nPixels < img_width) {
+                    throw iom::exception("End of file");
+                }
+                if (img_width < true_width) {
+                    std::fseek(file, (true_width - img_width) * 2, SEEK_CUR);
+                }
             }
         }
     } catch (const iom::exception &e) {
