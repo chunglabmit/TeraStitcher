@@ -127,7 +127,7 @@ throw (iom::exception)
     }
     try {
         int width_be = read_raw_int(file, true);
-        std::fseek(file, 0, SEEK_SET);
+        fseek(file, 0, SEEK_SET);
         int width_le = read_raw_int(file, false);
         if (width_be < width_le) {
             true_width = width_be;
@@ -147,7 +147,7 @@ throw (iom::exception)
                     idx += 2;
                 }
                 if (img_width < true_width) {
-                    std::fseek(file, (true_width - img_width) * 2, SEEK_CUR);
+                    fseek(file, (true_width - img_width) * 2, SEEK_CUR);
                 }
             }
         } else {
@@ -159,7 +159,7 @@ throw (iom::exception)
                     throw iom::exception("End of file");
                 }
                 if (img_width < true_width) {
-                    std::fseek(file, (true_width - img_width) * 2, SEEK_CUR);
+                    fseek(file, (true_width - img_width) * 2, SEEK_CUR);
                 }
             }
         }
